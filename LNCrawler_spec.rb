@@ -33,4 +33,31 @@ describe LNCrawler do
       LNCrawler.download_judgments(judgments)
     end
   end
+
+  it 'prunes existing judgments' do
+    existing_judgments = [
+      Judgment.new({
+        :case_name => 'Singapore Swimming Club v Koh Sin Chong Freddie - [2016] SGCA 28',
+        :neutral_citation => '[2016] SGCA 28',
+        :url => 'https://www.lawnet.sg/lawnet/web/lawnet/free-resources?p_p_id=freeresources_WAR_lawnet3baseportlet&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=2&p_p_col_count=3&_freeresources_WAR_lawnet3baseportlet_action=openContentPage&_freeresources_WAR_lawnet3baseportlet_docId=/Judgment/18801-SSP.xml'
+      })]
+
+    judgments = [
+      Judgment.new({
+        :case_name => 'Viet Hai Petroleum Corp v Ng Jun Quan and another and another matter - [2016] SGHC 81',
+        :neutral_citation => '[2016] SGHC 81',
+        :url => 'https://www.lawnet.sg/lawnet/web/lawnet/free-resources?p_p_id=freeresources_WAR_lawnet3baseportlet&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=2&p_p_col_count=3&_freeresources_WAR_lawnet3baseportlet_action=openContentPage&_freeresources_WAR_lawnet3baseportlet_docId=/Judgment/18807-SSP.xml'
+      }),
+      Judgment.new({
+        :case_name => 'Singapore Swimming Club v Koh Sin Chong Freddie - [2016] SGCA 28',
+        :neutral_citation => '[2016] SGCA 28',
+        :url => 'https://www.lawnet.sg/lawnet/web/lawnet/free-resources?p_p_id=freeresources_WAR_lawnet3baseportlet&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=2&p_p_col_count=3&_freeresources_WAR_lawnet3baseportlet_action=openContentPage&_freeresources_WAR_lawnet3baseportlet_docId=/Judgment/18801-SSP.xml'
+      })]
+
+    allow(LNCrawler).to receive(:has_index_file) { true }
+    allow(LNCrawler).to receive(:get_existing_judgments) { existing_judgments }
+    pruned_judgments = LNCrawler.prune_existing_judgments(judgments)
+
+    expect(pruned_judgments.count).to eq(1)
+  end
 end

@@ -1,5 +1,6 @@
 require 'open-uri'
 require 'nokogiri'
+require 'csv'
 require 'HTMLEntities'
 require_relative 'judgment.rb'
 
@@ -21,30 +22,111 @@ class LNCrawler
   JUDGMENT_BASE_URL = FREE_RESOURCE_URL + '?' + JUDGMENT_QUERY
 
   def self.serve_some_justice
+    STDOUT.sync = true
+    print 'Fetching LawNet free resources page...'
     main_page = self.fetch_main_page
-    judgment_page_urls = self.extract_links_to_sub_pages(main_page)
+    puts 'OK'
+
+    print 'Extracting urls to judgment pages...'
+    judgment_page_urls = self.extract_judgment_page_urls(main_page)
+    puts 'OK'
+
     judgment_page_urls.each do |url|
+      puts 'Extracting judgments from results page...'
       judgments = self.extract_judgments(url)
-      self.download_judgments(judgments)
+      puts "found #{judgments.count} judgments"
+
+      print 'Pruning existing judgments...'
+      judgments = self.prune_existing_judgments(judgments)
+      puts "#{judgments.count} new judgments to download"
+
+      self.download_judgments(judgments) unless judgments.count == 0
     end
+  end
+
+  def self.add_to_judgment_index(judgment)
+    self.create_download_path_if_needed
+
+    # create new index file with header row if none exist previously
+    if (!self.has_index_file)
+      begin
+        CSV.open(INDEX_FILE_PATH, 'w') do |csv|
+          csv << ['Case name', 'Condensed case name', 'Neutral citation']
+        end
+      rescue Exception => e
+        abort("Error creating index file. Please try again.")
+      end
+    end
+
+    begin
+      CSV.open(INDEX_FILE_PATH, 'a') do |csv|
+        csv << [judgment[:case_name], judgment.get_condensed_case_name, judgment[:neutral_citation]] 
+      end
+    rescue
+      abort("Error writing to index file. Please try again.")
+    end
+  end
+
+  def self.prune_existing_judgments(judgments)
+    # if no index file exists, there is nothing to be pruned
+    return judgments unless self.has_index_file
+
+    existing_judgments = self.get_existing_judgments()
+    citations_of_existing_judgments = self.extract_array_of_citations(existing_judgments)
+
+    new_judgments = judgments.select do |j|
+      !citations_of_existing_judgments.include?(j[:neutral_citation])
+    end
+
+    new_judgments
+  end
+
+  def self.extract_array_of_citations(judgments)
+    citations = Array.new
+    judgments.each do |j|
+      citations << j[:neutral_citation]
+    end
+
+    citations
+  end
+  
+  def self.has_index_file
+    File.exist?(INDEX_FILE_PATH)
+  end
+
+  def self.get_existing_judgments
+    begin
+      index = CSV.read(INDEX_FILE_PATH, :headers => true)
+    rescue
+      abort("Error opening index file. Please close and try againt")
+    end
+
+    existing_judgments = Array.new
+    index.each do |csv_row|
+      existing_judgments << Judgment.new(
+        :case_name => csv_row['Case name'],
+        :neutral_citation => csv_row['Neutral citation'],
+      )
+    end
+
+    existing_judgments
   end
 
   def self.download_judgments(judgments)
     self.create_download_path_if_needed
 
-    judgments.each do |j|
+    total = judgment.count
+    judgments.each_with_index do |j, index|
+      puts "Downloading case #{index}/#{total}: #{j.get_condensed_case_name}"
       page_source = open(j[:url], &:read)
       filename = j.get_condensed_case_name.gsub(/[\\\/:\*\?"<>|]/, '_') + '.pdf'
-      File.open(DOWNLOAD_PATH + filename, 'wb') { |f| f.write(page_source) }
+      File.open(DOWNLOAD_PATH + filename, 'w') { |f| f.write(page_source) }
       self.add_to_judgment_index(j)
     end
   end
 
   def self.create_download_path_if_needed
     Dir.mkdir(DOWNLOAD_PATH) unless File.exist?(DOWNLOAD_PATH)
-  end
-
-  def self.add_to_judgment_index(judgment)
   end
 
   def self.fetch_main_page
@@ -72,10 +154,13 @@ class LNCrawler
 
     judgments = Array.new
     (1..num_pages).each do |page_no|
+      print "\r...crawling page #{page_no}/#{num_pages}"
+      STDOUT.flush
       judgment_page_url = "#{sub_page_url}&_freeresources_WAR_lawnet3baseportlet_page=#{page_no}"
       judgment_page_source = self.fetch_website(judgment_page_url)
       judgments.push (self.get_judgments_from_single_page(judgment_page_source))
     end
+    puts ''
 
     judgments.flatten
   end
