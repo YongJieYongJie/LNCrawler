@@ -5,7 +5,7 @@ require 'HTMLEntities'
 
 class LNCrawler
   FREE_RESOURCE_URL = 'https://www.lawnet.sg/lawnet/web/lawnet/free-resources'
-  JUDGMENT_QUERY = URI.encode_www_from(
+  JUDGMENT_QUERY = URI.encode_www_form(
     :p_p_id => 'freeresources_WAR_lawnet3baseportlet',
     :p_p_lifecycle => '1',
     :p_p_state => 'normal',
@@ -14,7 +14,7 @@ class LNCrawler
     :p_p_col_pos => '2',
     :p_p_col_count => '3',
     :_freeresources_WAR_lawnet3baseportlet_action => 'openContentPage',
-    :_freeresources_WAR_lawnet3baseportlet_docId => '{judgment_resource_location}')
+    :_freeresources_WAR_lawnet3baseportlet_docId => 'JUDGMENT_RESOURCE_LOCATION')
   JUDGMENT_BASE_URL = FREE_RESOURCE_URL + '?' + JUDGMENT_QUERY
 
   def self.serve_some_justice
@@ -22,6 +22,16 @@ class LNCrawler
     sub_page_urls = self.extract_links_to_sub_pages(main_page_source)
     sub_page_url.each do |url|
       resource_paths = self.extract_urls_to_judgments(url)
+      self.download_judgments(resource_paths)
+    end
+  end
+
+  def self.download_judgments(resource_paths)
+    resource_paths.each do |rp|
+      full_url = JUDGMENT_BASE_URL.gsub('JUDGMENT_RESOURCE_LOCATION', rp)
+      uri = URI.parse(full_url)
+      page_source = open(uri, &:read)
+      File.open('judgment.html', 'wb') { |f| f.write(page_source) }
     end
   end
 

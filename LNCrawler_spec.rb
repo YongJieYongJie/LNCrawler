@@ -25,7 +25,10 @@ describe LNCrawler do
     end
   end
 
-  xit 'downloads all judgments to json' do
-
+  it 'downloads all judgments to json' do
+    VCR.use_cassette('download judgment') do
+      resource_paths = ['/Judgment/18770-SSP.xml']
+      LNCrawler.download_judgments(resource_paths)
+    end
   end
 end
