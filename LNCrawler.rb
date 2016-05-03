@@ -4,6 +4,9 @@ require 'HTMLEntities'
 #require_relative 'judgment'
 
 class LNCrawler
+  DOWNLOAD_PATH = 'judgments_from_lawnet/'
+  INDEX_FILE_PATH = DOWNLOAD_PATH + 'index.csv'
+
   FREE_RESOURCE_URL = 'https://www.lawnet.sg/lawnet/web/lawnet/free-resources'
   JUDGMENT_QUERY = URI.encode_www_form(
     :p_p_id => 'freeresources_WAR_lawnet3baseportlet',
