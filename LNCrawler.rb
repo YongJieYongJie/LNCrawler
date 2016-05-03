@@ -37,7 +37,7 @@ class LNCrawler
 			urls.push (self.get_judgment_url_for_single_page(judgment_page_source))
 		end
 
-		urls
+		urls.flatten
 	end
 
 	def self.get_judgment_url_for_single_page(page_source)

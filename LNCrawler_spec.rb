@@ -21,7 +21,7 @@ describe LNCrawler do
     VCR.use_cassette('fetch resource paths to judgments') do
       sub_page_url = 'https://www.lawnet.sg:443/lawnet/web/lawnet/free-resources?p_p_id=freeresources_WAR_lawnet3baseportlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=2&p_p_col_count=3&_freeresources_WAR_lawnet3baseportlet_action=supreme'
       resource_paths = LNCrawler.extract_urls_to_judgments(sub_page_url)
-      expect(resource_paths.flatten.count).to eq(92)
+      expect(resource_paths.count).to eq(92)
     end
   end
 
