@@ -1,3 +1,7 @@
+/judgments_from_lawnet/*
+*.html
+main.rb
+
 *.gem
 *.rbc
 /.config
