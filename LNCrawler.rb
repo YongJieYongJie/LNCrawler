@@ -76,24 +76,35 @@ class LNCrawler
     judgments = Array.new
 
     page_doc = Nokogiri::HTML(page_source)
-    judgment_nodes = page_doc.xpath('//p[@class="resultsTitle"]/a')
+    judgment_nodes = self.get_judgment_nodes(page_doc)
 
     judgment_nodes.each do |j|
-      case_name = j.at_xpath('text()')
-      neutral_citation = /(\[[0-9]{4}\] [A-Z]+ [0-9]+)$/.match(case_name)[1]
-
-      href_attr = j.at_xpath('@href')
-      resource_path = /javascript:viewContent\('(.+)'\)/.match(href_attr)[1]
-      url = JUDGMENT_BASE_URL.gsub('JUDGMENT_RESOURCE_LOCATION', resource_path)
-
       judgments << Judgment.new(
-        :case_name => case_name,
-        :neutral_citation => neutral_citation,
-        :url => url
+        :case_name => self.parse_case_name(j),
+        :neutral_citation => self.parse_neutral_citation(j),
+        :url => self.parse_url(j)
       )
     end
 
     judgments
+  end
+
+  def self.get_judgment_nodes(node_set)
+    node_set.xpath('//p[@class="resultsTitle"]/a')
+  end
+
+  def self.parse_case_name(node)
+    node.at_xpath('text()')
+  end
+
+  def self.parse_neutral_citation(node)
+    /(\[[0-9]{4}\] [A-Z]+ [0-9]+)$/.match(node.at_xpath('text()'))[1]
+  end
+
+  def self.parse_url(node)
+    href_attr = node.at_xpath('@href')
+    resource_path = /javascript:viewContent\('(.+)'\)/.match(href_attr)[1]
+    url = JUDGMENT_BASE_URL.gsub('JUDGMENT_RESOURCE_LOCATION', resource_path)
   end
 
   def self.is_downloaded(neutral_citation)
