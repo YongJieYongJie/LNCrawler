@@ -1,7 +1,7 @@
 require 'open-uri'
 require 'nokogiri'
 require 'HTMLEntities'
-#require_relative 'judgment'
+require_relative 'judgment.rb'
 
 class LNCrawler
   DOWNLOAD_PATH = 'judgments_from_lawnet/'
@@ -66,14 +66,14 @@ class LNCrawler
     (1..num_pages).each do |page_no|
       judgment_page_url = "#{sub_page_url}&_freeresources_WAR_lawnet3baseportlet_page=#{page_no}"
       judgment_page_source = self.fetch_website(judgment_page_url)
-      urls.push (self.get_judgment_url_for_single_page(judgment_page_source))
+      urls.push (self.get_judgments_from_single_page(judgment_page_source))
     end
 
     urls.flatten
   end
 
-  def self.get_judgment_url_for_single_page(page_source)
-    resource_paths = Array.new
+  def self.get_judgments_from_single_page(page_source)
+    judgments = Array.new
 
     page_doc = Nokogiri::HTML(page_source)
     judgment_nodes = page_doc.xpath('//p[@class="resultsTitle"]/a')
@@ -82,14 +82,18 @@ class LNCrawler
       case_name = j.at_xpath('text()')
       neutral_citation = /(\[[0-9]{4}\] [A-Z]+ [0-9]+)$/.match(case_name)[1]
 
-      unless self.is_downloaded(neutral_citation)
-        href_attr = j.at_xpath('@href')
-        resource_path = /javascript:viewContent\('(.+)'\)/.match(href_attr)[1]
-        resource_paths << resource_path
-      end
+      href_attr = j.at_xpath('@href')
+      resource_path = /javascript:viewContent\('(.+)'\)/.match(href_attr)[1]
+      url = JUDGMENT_BASE_URL.gsub('JUDGMENT_RESOURCE_LOCATION', resource_path)
+
+      judgments << Judgment.new(
+        :case_name => case_name,
+        :neutral_citation => neutral_citation,
+        :url => url
+      )
     end
 
-    resource_paths
+    judgments
   end
 
   def self.is_downloaded(neutral_citation)
