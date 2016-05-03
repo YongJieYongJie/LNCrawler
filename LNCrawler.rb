@@ -21,10 +21,10 @@ class LNCrawler
   JUDGMENT_BASE_URL = FREE_RESOURCE_URL + '?' + JUDGMENT_QUERY
 
   def self.serve_some_justice
-    main_page_source = self.fetch_main_page
-    sub_page_urls = self.extract_links_to_sub_pages(main_page_source)
-    sub_page_url.each do |url|
-      resource_paths = self.extract_urls_to_judgments(url)
+    main_page = self.fetch_main_page
+    judgment_page_urls = self.extract_links_to_sub_pages(main_page)
+    judgment_page_urls.each do |url|
+      resource_paths = self.extract_judgment_urls(url)
       self.download_judgments(resource_paths)
     end
   end
@@ -45,38 +45,36 @@ class LNCrawler
   def self.fetch_website(url)
     uri = URI.parse(url)
     page_source = open(uri, &:read)
+    Nokogiri::HTML(page_source)
   end
 
-  def self.extract_links_to_sub_pages(main_page_source)
+  def self.extract_judgment_page_urls(main_page)
     urls = Array.new
 
-    main_page_nodes = Nokogiri::HTML(main_page_source)
-    urls_nodes = main_page_nodes.xpath('//ul[@class="judgementUpdate"]//a/@href')
+    urls_nodes = main_page.xpath('//ul[@class="judgementUpdate"]//a/@href')
     urls_nodes.each { |n| urls << n.content.to_s }
 
     urls
   end
 
-  def self.extract_urls_to_judgments(sub_page_url)
-    sub_page_source = self.fetch_website(sub_page_url)
-    sub_page_nodes = Nokogiri::HTML(sub_page_source)
-    num_pages = self.get_num_pages(sub_page_nodes) 
+  def self.extract_judgment_urls(sub_page_url)
+    judgment_page = self.fetch_website(sub_page_url)
+    num_pages = self.get_num_pages(judgment_page) 
 
-    urls = Array.new
+    judgments = Array.new
     (1..num_pages).each do |page_no|
       judgment_page_url = "#{sub_page_url}&_freeresources_WAR_lawnet3baseportlet_page=#{page_no}"
       judgment_page_source = self.fetch_website(judgment_page_url)
-      urls.push (self.get_judgments_from_single_page(judgment_page_source))
+      judgments.push (self.get_judgments_from_single_page(judgment_page_source))
     end
 
-    urls.flatten
+    judgments.flatten
   end
 
-  def self.get_judgments_from_single_page(page_source)
+  def self.get_judgments_from_single_page(results_page)
     judgments = Array.new
 
-    page_doc = Nokogiri::HTML(page_source)
-    judgment_nodes = self.get_judgment_nodes(page_doc)
+    judgment_nodes = self.get_judgment_nodes(results_page)
 
     judgment_nodes.each do |j|
       judgments << Judgment.new(
