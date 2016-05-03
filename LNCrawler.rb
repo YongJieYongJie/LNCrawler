@@ -24,18 +24,27 @@ class LNCrawler
     main_page = self.fetch_main_page
     judgment_page_urls = self.extract_links_to_sub_pages(main_page)
     judgment_page_urls.each do |url|
-      resource_paths = self.extract_judgment_urls(url)
-      self.download_judgments(resource_paths)
+      judgments = self.extract_judgments(url)
+      self.download_judgments(judgments)
     end
   end
 
-  def self.download_judgments(resource_paths)
-    resource_paths.each do |rp|
-      full_url = JUDGMENT_BASE_URL.gsub('JUDGMENT_RESOURCE_LOCATION', rp)
-      uri = URI.parse(full_url)
-      page_source = open(uri, &:read)
-      File.open('judgment.html', 'wb') { |f| f.write(page_source) }
+  def self.download_judgments(judgments)
+    self.create_download_path_if_needed
+
+    judgments.each do |j|
+      page_source = open(j[:url], &:read)
+      filename = j.get_condensed_case_name.gsub(/[\\\/:\*\?"<>|]/, '_') + '.pdf'
+      File.open(DOWNLOAD_PATH + filename, 'wb') { |f| f.write(page_source) }
+      self.add_to_judgment_index(j)
     end
+  end
+
+  def self.create_download_path_if_needed
+    Dir.mkdir(DOWNLOAD_PATH) unless File.exist?(DOWNLOAD_PATH)
+  end
+
+  def self.add_to_judgment_index(judgment)
   end
 
   def self.fetch_main_page
@@ -57,7 +66,7 @@ class LNCrawler
     urls
   end
 
-  def self.extract_judgment_urls(sub_page_url)
+  def self.extract_judgments(sub_page_url)
     judgment_page = self.fetch_website(sub_page_url)
     num_pages = self.get_num_pages(judgment_page) 
 
@@ -92,7 +101,7 @@ class LNCrawler
   end
 
   def self.parse_case_name(node)
-    node.at_xpath('text()')
+    node.at_xpath('text()').to_s.strip
   end
 
   def self.parse_neutral_citation(node)
