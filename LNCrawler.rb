@@ -36,7 +36,7 @@ class LNCrawler
     judgment_page_urls.each do |url|
       puts 'Extracting judgments from results page...'
       judgments = self.extract_judgments(url)
-      puts "found #{judgments.count} judgments"
+      puts "...found #{judgments.count} judgments"
 
       print 'Pruning existing judgments...'
       judgments = self.prune_existing_judgments(judgments)
@@ -44,6 +44,8 @@ class LNCrawler
 
       self.download_judgments(judgments) unless judgments.count == 0
     end
+
+    puts 'Justic is served.'
   end
 
   def self.fetch_main_page
@@ -97,6 +99,7 @@ class LNCrawler
       judgments << Judgment.new(
         :case_name => self.parse_case_name(j),
         :neutral_citation => self.parse_neutral_citation(j),
+        :decision_date => self.parse_decision_date(j),
         :url => self.parse_url(j)
       )
     end
@@ -109,11 +112,15 @@ class LNCrawler
   end
 
   def self.parse_case_name(node)
-    node.at_xpath('text()').to_s.strip
+    /(.+) - \[[0-9]{4}\] [A-Z]+ [0-9]+$/.match(node.at_xpath('text()'))[1].strip
   end
 
   def self.parse_neutral_citation(node)
     /(\[[0-9]{4}\] [A-Z]+ [0-9]+)$/.match(node.at_xpath('text()'))[1]
+  end
+
+  def self.parse_decision_date(node)
+    node.at_xpath('../../p[@class="resultsDate"]/text()').to_s.strip
   end
 
   def self.parse_url(node)
@@ -129,7 +136,7 @@ class LNCrawler
     if (!self.has_index_file)
       begin
         CSV.open(INDEX_FILE_PATH, 'w') do |csv|
-          csv << ['Case name', 'Condensed case name', 'Neutral citation']
+          csv << ['Case name', 'Condensed case name', 'Neutral citation', 'Decision date']
         end
       rescue Exception => e
         abort("Error creating index file. Please try again.")
@@ -138,7 +145,7 @@ class LNCrawler
 
     begin
       CSV.open(INDEX_FILE_PATH, 'a') do |csv|
-        csv << [judgment[:case_name], judgment.get_condensed_case_name, judgment[:neutral_citation]] 
+        csv << [judgment[:case_name], judgment.get_condensed_case_name, judgment[:neutral_citation], judgment[:decision_date]] 
       end
     rescue
       abort("Error writing to index file. Please try again.")
@@ -175,6 +182,7 @@ class LNCrawler
       existing_judgments << Judgment.new(
         :case_name => csv_row['Case name'],
         :neutral_citation => csv_row['Neutral citation'],
+        :decision_date => csv_row['Decision date']
       )
     end
 
@@ -195,10 +203,14 @@ class LNCrawler
 
     total = judgments.count
     judgments.each_with_index do |j, index|
-      puts "Downloading case #{index+1}/#{total}: #{j.get_condensed_case_name}"
+      case_name_with_citation = j.get_condensed_case_name + ', ' + j[:neutral_citation]
+      filename = case_name_with_citation + '.html'
+
+      puts "Downloading case #{index+1}/#{total}: #{case_name_with_citation}"
+
       page_source = open(j[:url], &:read)
-      filename = j.get_condensed_case_name.gsub(/[\\\/:\*\?"<>|]/, '_') + '.pdf'
       File.open(DOWNLOAD_PATH + filename, 'w') { |f| f.write(page_source) }
+
       self.add_to_judgment_index(j)
     end
   end
