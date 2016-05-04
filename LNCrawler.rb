@@ -204,7 +204,7 @@ class LNCrawler
     total = judgments.count
     judgments.each_with_index do |j, index|
       case_name_with_citation = j.get_condensed_case_name + ', ' + j[:neutral_citation]
-      filename = case_name_with_citation + '.html'
+      filename = case_name_with_citation.gsub(/[\\\/:\*\?"<>|]/, '_') + '.html'
 
       puts "Downloading case #{index+1}/#{total}: #{case_name_with_citation}"
 
