@@ -25,7 +25,7 @@ class LNCrawler
     # for syncing progress messages
     STDOUT.sync = true
 
-    print 'Fetching LawNet free resources page...'
+    print 'Fetching LawNet free resources main page...'
     main_page = self.fetch_main_page
     puts 'OK'
 
@@ -33,19 +33,20 @@ class LNCrawler
     judgment_page_urls = self.extract_judgment_page_urls(main_page)
     puts 'OK'
 
-    judgment_page_urls.each do |url|
-      puts 'Extracting judgments from results page...'
+    resource_page_description = ['Supreme Court', 'State Courts', 'Family Court and Juvenile Court']
+    judgment_page_urls.each_with_index do |url, index|
+      puts "Extracting #{resource_page_description[index]} judgments..."
       judgments = self.extract_judgments(url)
       puts "...found #{judgments.count} judgments"
 
-      print 'Pruning existing judgments...'
+      print 'Checking for new judgments...'
       judgments = self.prune_existing_judgments(judgments)
       puts "#{judgments.count} new judgments to download"
 
       self.download_judgments(judgments) unless judgments.count == 0
     end
 
-    puts 'Justic is served.'
+    puts 'Justice is served.'
   end
 
   def self.fetch_main_page
@@ -73,7 +74,7 @@ class LNCrawler
 
     judgments = Array.new
     (1..num_pages).each do |page_no|
-      print "\r...crawling page #{page_no}/#{num_pages}"
+      print "\r...crawling page [#{page_no}/#{num_pages}]"
       STDOUT.flush
       judgment_page_url = "#{sub_page_url}&_freeresources_WAR_lawnet3baseportlet_page=#{page_no}"
       judgment_page_source = self.fetch_website(judgment_page_url)
@@ -206,7 +207,7 @@ class LNCrawler
       case_name_with_citation = j.get_condensed_case_name + ', ' + j[:neutral_citation]
       filename = case_name_with_citation.gsub(/[\\\/:\*\?"<>|]/, '_') + '.html'
 
-      puts "Downloading case #{index+1}/#{total}: #{case_name_with_citation}"
+      puts "Downloading case [#{index+1}/#{total}]: #{case_name_with_citation}"
 
       page_source = open(j[:url], &:read)
       File.open(DOWNLOAD_PATH + filename, 'w') { |f| f.write(page_source) }
