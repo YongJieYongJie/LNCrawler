@@ -1,5 +1,6 @@
-/judgments_from_lawnet/*
 *.html
+*.csv
+*.bat
 
 *.gem
 *.rbc
