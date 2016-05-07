@@ -1,10 +1,10 @@
 require 'open-uri'
 require 'nokogiri'
 require 'csv'
-require 'HTMLEntities'
+require 'htmlentities'
 require 'fileutils'
 require_relative 'judgment.rb'
-require_relative 'lntidier.rb'
+require_relative 'LNTidier.rb'
 
 class LNCrawler
   DOWNLOAD_PATH = 'crawled_judgments'
