@@ -4,6 +4,7 @@ require 'csv'
 require 'HTMLEntities'
 require 'fileutils'
 require_relative 'judgment.rb'
+require_relative 'lntidier.rb'
 
 class LNCrawler
   DOWNLOAD_PATH = 'crawled_judgments'
@@ -108,7 +109,8 @@ class LNCrawler
       puts "[==>] Downloading case [#{index+1}/#{total}]: #{case_name_with_citation}"
 
       page_source = open(j[:url], &:read)
-      File.open(DOWNLOAD_PATH + '/' + filename, 'w') { |f| f.write(page_source) }
+      tidied_page_source = LNTidier.tidy(page_source)
+      File.open(DOWNLOAD_PATH + '/' + filename, 'w') { |f| f.write(tidied_page_source) }
 
       self.add_to_judgment_index(j)
     end

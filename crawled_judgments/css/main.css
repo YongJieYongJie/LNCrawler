@@ -1,0 +1,26 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    background-color: #e9eaed;
+}
+
+a {
+    color: #000000;
+}
+
+#main-content {
+    margin: 0px auto;
+    padding: 1.62em 1.62em;
+    background-color: #ffffff;
+    font-family: Georgia;
+    line-height: 1.62em;
+    max-width: 30em;
+}
+
+h2 {
+    margin-top: 0px;
+}
+
+.info-delim1 {
+    vertical-align: top;
+}
