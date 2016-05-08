@@ -24,3 +24,11 @@ h2 {
 .info-delim1 {
     vertical-align: top;
 }
+
+hr {
+    width: 35em;
+}
+
+sup {
+    margin-right: 0.62em;
+}
