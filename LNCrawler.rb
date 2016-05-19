@@ -205,7 +205,7 @@ class LNCrawler
   end
 
   def self.get_judgment_nodes(node_set)
-    node_set.xpath('//p[@class="resultsTitle"]/a')
+    node_set.xpath('//p[@class="searchResultsHolder"]/a')
   end
 
   def self.parse_case_name(node)
